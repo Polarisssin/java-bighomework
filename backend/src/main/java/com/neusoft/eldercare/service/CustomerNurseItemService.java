@@ -9,6 +9,7 @@ import com.neusoft.eldercare.mapper.CustomerMapper;
 import com.neusoft.eldercare.mapper.CustomerNurseItemMapper;
 import com.neusoft.eldercare.mapper.NurseContentMapper;
 import com.neusoft.eldercare.mapper.NurseLevelMapper;
+import com.neusoft.eldercare.security.SecurityUtils;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -24,6 +25,7 @@ public class CustomerNurseItemService {
     private final CustomerMapper customerMapper;
 
     public List<CustomerNurseItem> listByCustomer(Integer customerId) {
+        SecurityUtils.assertCaregiverOwnsCustomer(customerMapper, customerId);
         List<CustomerNurseItem> list = itemMapper.selectList(
                 new LambdaQueryWrapper<CustomerNurseItem>()
                         .eq(CustomerNurseItem::getCustomerId, customerId)
@@ -34,6 +36,7 @@ public class CustomerNurseItemService {
     }
 
     public CustomerNurseItem create(CustomerNurseItem item) {
+        SecurityUtils.assertCaregiverOwnsCustomer(customerMapper, item.getCustomerId());
         item.setIsDeleted(0);
         itemMapper.insert(item);
         enrich(item);
@@ -41,6 +44,10 @@ public class CustomerNurseItemService {
     }
 
     public CustomerNurseItem update(CustomerNurseItem item) {
+        CustomerNurseItem existing = itemMapper.selectById(item.getId());
+        if (existing != null) {
+            SecurityUtils.assertCaregiverOwnsCustomer(customerMapper, existing.getCustomerId());
+        }
         itemMapper.updateById(item);
         enrich(item);
         return item;
@@ -49,12 +56,14 @@ public class CustomerNurseItemService {
     public void delete(Integer id) {
         CustomerNurseItem item = itemMapper.selectById(id);
         if (item != null) {
+            SecurityUtils.assertCaregiverOwnsCustomer(customerMapper, item.getCustomerId());
             item.setIsDeleted(1);
             itemMapper.updateById(item);
         }
     }
 
     public void setCustomerLevel(Integer customerId, Integer levelId) {
+        SecurityUtils.assertCaregiverOwnsCustomer(customerMapper, customerId);
         Customer c = customerMapper.selectById(customerId);
         if (c == null || c.getIsDeleted() == 1) {
             throw new IllegalArgumentException("客户不存在");

@@ -23,6 +23,11 @@ request.interceptors.request.use((config) => {
 request.interceptors.response.use(
   (res) => {
     const body = res.data;
+    if (body.code === 401) {
+      useUserStore().logout();
+      router.push("/login");
+      return Promise.reject(body);
+    }
     if (body.code !== 200) {
       ElMessage.error(body.message || "请求失败");
       return Promise.reject(body);
@@ -30,9 +35,14 @@ request.interceptors.response.use(
     return body.data;
   },
   (err) => {
-    if (err.response?.status === 401) {
-      useUserStore().logout();
-      router.push("/login");
+    const status = err.response?.status;
+    if (status === 401 || status === 403) {
+      const msg = err.response?.data?.message || "";
+      if (status === 401 || msg.includes("未登录") || msg.includes("登录已过期")) {
+        useUserStore().logout();
+        router.push("/login");
+        return Promise.reject(err);
+      }
     }
     ElMessage.error(err.response?.data?.message || err.message || "网络错误");
     return Promise.reject(err);

@@ -39,8 +39,9 @@
 
 <script setup lang="ts">
 import { onMounted, reactive, ref } from "vue";
-import { ElMessage } from "element-plus";
+import { ElMessage, ElMessageBox } from "element-plus";
 import request from "@/utils/request";
+import { UI_TEXT } from "@/constants/ui-text";
 
 const loading = ref(false);
 const list = ref<any[]>([]);
@@ -76,6 +77,7 @@ async function save() {
 }
 
 async function remove(id: number) {
+  await ElMessageBox.confirm(UI_TEXT.confirmDeleteNurseContent, "删除护理项目", { type: "warning" });
   await request.delete(`/nurse/content/${id}`);
   load();
 }

@@ -39,4 +39,28 @@ async function ping() {
   return true;
 }
 
-module.exports = { getPool, query, queryOne, ping, getConfig };
+/** 多步写操作事务（入住、调床等） */
+async function withTransaction(fn) {
+  const conn = await (await getPool()).getConnection();
+  try {
+    await conn.beginTransaction();
+    const txQuery = async (sql, params = []) => {
+      const [rows] = await conn.execute(sql, params);
+      return rows;
+    };
+    const txQueryOne = async (sql, params = []) => {
+      const rows = await txQuery(sql, params);
+      return rows[0] || null;
+    };
+    const result = await fn({ query: txQuery, queryOne: txQueryOne });
+    await conn.commit();
+    return result;
+  } catch (e) {
+    await conn.rollback();
+    throw e;
+  } finally {
+    conn.release();
+  }
+}
+
+module.exports = { getPool, query, queryOne, ping, getConfig, withTransaction };

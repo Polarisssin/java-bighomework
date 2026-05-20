@@ -9,6 +9,7 @@ import com.neusoft.eldercare.mapper.BedDetailsMapper;
 import com.neusoft.eldercare.mapper.BedMapper;
 import com.neusoft.eldercare.mapper.CustomerMapper;
 import com.neusoft.eldercare.mapper.RoomMapper;
+import com.neusoft.eldercare.security.SecurityUtils;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -115,6 +116,7 @@ public class BedService {
 
     @Transactional
     public void swapBed(Integer customerId, Integer newBedId) {
+        SecurityUtils.assertCaregiverOwnsCustomer(customerMapper, customerId);
         Customer customer = customerMapper.selectById(customerId);
         if (customer == null || customer.getIsDeleted() == 1) {
             throw new IllegalArgumentException("客户不存在");

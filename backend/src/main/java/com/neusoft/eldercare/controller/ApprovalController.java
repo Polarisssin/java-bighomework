@@ -8,6 +8,7 @@ import com.neusoft.eldercare.security.LoginUser;
 import com.neusoft.eldercare.service.ApprovalService;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
@@ -22,17 +23,22 @@ public class ApprovalController {
     @GetMapping("/outward")
     public Result<Page<Outward>> outwardPage(
             @RequestParam(required = false) String customerName,
+            @RequestParam(required = false) Integer submitUserId,
             @RequestParam(defaultValue = "1") int page,
-            @RequestParam(defaultValue = "10") int size) {
-        return Result.ok(approvalService.pageOutward(customerName, page, size));
+            @RequestParam(defaultValue = "10") int size,
+            @AuthenticationPrincipal LoginUser user) {
+        return Result.ok(approvalService.pageOutward(customerName, submitUserId, user, page, size));
     }
 
     @PostMapping("/outward")
-    public Result<Outward> createOutward(@RequestBody Outward outward) {
-        return Result.ok(approvalService.createOutward(outward));
+    public Result<Outward> createOutward(
+            @RequestBody Outward outward,
+            @AuthenticationPrincipal LoginUser user) {
+        return Result.ok(approvalService.createOutward(outward, user));
     }
 
     @PutMapping("/outward/{id}/audit")
+    @PreAuthorize("hasRole('ADMIN')")
     public Result<Void> auditOutward(
             @PathVariable Integer id,
             @RequestParam boolean pass,
@@ -42,6 +48,7 @@ public class ApprovalController {
     }
 
     @PutMapping("/outward/{id}/return")
+    @PreAuthorize("hasRole('ADMIN')")
     public Result<Void> registerReturn(
             @PathVariable Integer id,
             @RequestParam java.time.LocalDate actualReturnTime) {
@@ -52,17 +59,22 @@ public class ApprovalController {
     @GetMapping("/backdown")
     public Result<Page<Backdown>> backdownPage(
             @RequestParam(required = false) String customerName,
+            @RequestParam(required = false) Integer submitUserId,
             @RequestParam(defaultValue = "1") int page,
-            @RequestParam(defaultValue = "10") int size) {
-        return Result.ok(approvalService.pageBackdown(customerName, page, size));
+            @RequestParam(defaultValue = "10") int size,
+            @AuthenticationPrincipal LoginUser user) {
+        return Result.ok(approvalService.pageBackdown(customerName, submitUserId, user, page, size));
     }
 
     @PostMapping("/backdown")
-    public Result<Backdown> createBackdown(@RequestBody Backdown backdown) {
-        return Result.ok(approvalService.createBackdown(backdown));
+    public Result<Backdown> createBackdown(
+            @RequestBody Backdown backdown,
+            @AuthenticationPrincipal LoginUser user) {
+        return Result.ok(approvalService.createBackdown(backdown, user));
     }
 
     @PutMapping("/backdown/{id}/audit")
+    @PreAuthorize("hasRole('ADMIN')")
     public Result<Void> auditBackdown(
             @PathVariable Integer id,
             @RequestParam boolean pass,

@@ -8,6 +8,9 @@ import com.neusoft.eldercare.entity.Customer;
 import com.neusoft.eldercare.mapper.BedDetailsMapper;
 import com.neusoft.eldercare.mapper.BedMapper;
 import com.neusoft.eldercare.mapper.CustomerMapper;
+import com.neusoft.eldercare.security.ForbiddenException;
+import com.neusoft.eldercare.security.LoginUser;
+import com.neusoft.eldercare.security.SecurityUtils;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -24,7 +27,8 @@ public class CustomerService {
     private final BedMapper bedMapper;
     private final BedDetailsMapper bedDetailsMapper;
 
-    public Page<Customer> page(String name, String elderlyType, String residence, int page, int size) {
+    public Page<Customer> page(String name, String elderlyType, String residence, Integer assignUserId,
+                               LoginUser loginUser, int page, int size) {
         LambdaQueryWrapper<Customer> qw = new LambdaQueryWrapper<Customer>()
                 .eq(Customer::getIsDeleted, 0)
                 .like(StringUtils.hasText(name), Customer::getCustomerName, name)
@@ -39,14 +43,20 @@ public class CustomerService {
         } else if ("self".equals(elderlyType)) {
             qw.isNull(Customer::getLevelId);
         }
+        if (SecurityUtils.isCaregiver(loginUser)) {
+            qw.eq(Customer::getUserId, loginUser.getUser().getId());
+        } else if (assignUserId != null) {
+            qw.eq(Customer::getUserId, assignUserId);
+        }
         return customerMapper.selectPage(new Page<>(page, size), qw);
     }
 
-    public Customer getById(Integer id) {
+    public Customer getById(Integer id, LoginUser loginUser) {
         Customer c = customerMapper.selectById(id);
         if (c == null || c.getIsDeleted() == 1) {
             throw new IllegalArgumentException("客户不存在");
         }
+        SecurityUtils.assertCaregiverOwnsCustomer(customerMapper, id);
         return c;
     }
 
@@ -90,8 +100,8 @@ public class CustomerService {
     }
 
     @Transactional
-    public Customer update(Customer input) {
-        Customer existing = getById(input.getId());
+    public Customer update(Customer input, LoginUser loginUser) {
+        Customer existing = getById(input.getId(), loginUser);
         if (input.getBirthday() != null) {
             input.setCustomerAge(Period.between(input.getBirthday(), LocalDate.now()).getYears());
         }
@@ -108,13 +118,17 @@ public class CustomerService {
         if (input.getBedId() != null && existing.getResidentStatus() != null && existing.getResidentStatus() == 2) {
             input.setResidentStatus(1);
         }
+        if (SecurityUtils.isCaregiver(loginUser) && input.getUserId() != null
+                && !input.getUserId().equals(existing.getUserId())) {
+            throw new ForbiddenException("健康管家不能修改服务对象分配");
+        }
         customerMapper.updateById(input);
         return customerMapper.selectById(input.getId());
     }
 
     @Transactional
-    public void delete(Integer id) {
-        Customer customer = getById(id);
+    public void delete(Integer id, LoginUser loginUser) {
+        Customer customer = getById(id, loginUser);
         Integer bedId = customer.getBedId();
         if (bedId != null) {
             Bed bed = bedMapper.selectById(bedId);

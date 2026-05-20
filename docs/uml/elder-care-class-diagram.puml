@@ -1,0 +1,225 @@
+@startuml elder-care-class-diagram
+' 东软颐养中心 v1.5.0 — 领域类图（报告用）
+skinparam shadowing false
+skinparam classAttributeIconSize 0
+skinparam classFontSize 13
+skinparam packageFontSize 14
+skinparam defaultFontName Microsoft YaHei
+skinparam roundcorner 8
+skinparam linetype ortho
+
+legend right
+  |= 模块 |= 说明 |
+  | <#E8F5E9> | 用户与角色 |
+  | <#FFF9C4> | 客户与床位 |
+  | <#E1BEE7> | 护理相关 |
+  | <#FFECB3> | 申请与审批 |
+  | <#BBDEFB> | 基础数据 |
+endlegend
+
+package "用户与角色" #E8F5E9 {
+  abstract class "用户\nUser" as User {
+    +userId : int
+    +username : String
+    +password : String
+    +nickname : String
+    +phoneNumber : String
+    +roleId : int
+    +isDeleted : int
+    +login()
+    +logout()
+  }
+
+  class "系统管理员\nAdmin" as Admin {
+    +approveOutward()
+    +approveBackdown()
+    +manageUser()
+    +assignCaregiver()
+    +configNurseLevel()
+  }
+
+  class "健康管家\nHealthManager" as HealthManager {
+    +employeeNo : String
+    +recordNurse()
+    +applyOutward()
+    +applyBackdown()
+    +viewDailyPlan()
+  }
+
+  class "角色\nRole" as Role {
+    +roleId : int
+    +name : String
+  }
+
+  class "菜单\nMenu" as Menu {
+    +menuId : int
+    +title : String
+    +path : String
+    +parentId : int
+  }
+
+  class "角色菜单\nRoleMenu" as RoleMenu {
+    +roleId : int
+    +menuId : int
+  }
+
+  User <|-- Admin
+  User <|-- HealthManager
+  Role "1" o-- "*" User : role_id
+  Role "1" o-- "*" RoleMenu
+  Menu "1" o-- "*" RoleMenu
+}
+
+package "基础数据" #BBDEFB {
+  class "楼栋\nBuilding" as Building {
+    +buildingNo : String
+  }
+
+  class "楼层\nFloor" as Floor {
+    +floorNo : String
+  }
+
+  class "房间\nRoom" as Room {
+    +roomId : int
+    +roomFloor : String
+    +roomNo : int
+  }
+
+  class "床位\nBed" as Bed {
+    +bedId : int
+    +bedNo : String
+    +bedStatus : int
+    +roomNo : int
+  }
+
+  Building "1" *-- "*" Floor
+  Floor "1" *-- "*" Room
+  Room "1" *-- "*" Bed
+}
+
+package "客户与床位" #FFF9C4 {
+  class "客户\nCustomer" as Customer {
+    +customerId : int
+    +customerName : String
+    +customerSex : int
+    +customerAge : int
+    +idcard : String
+    +checkinDate : Date
+    +expirationDate : Date
+    +residentStatus : int
+    +buildingNo : String
+    +roomNo : String
+    +bedId : int
+    +userId : int
+    +levelId : int
+    +checkin()
+    +update()
+    +retreatArchive()
+  }
+
+  class "床位使用记录\nBedDetails" as BedDetails {
+    +id : int
+    +startDate : Date
+    +endDate : Date
+    +useStatus : int
+    +updateEndDate()
+  }
+
+  Customer "1" --> "0..1" Bed : 当前床位
+  Customer "1" o-- "*" BedDetails
+  Bed "1" o-- "*" BedDetails
+  Customer ..> HealthManager : user_id 管家
+}
+
+package "护理相关" #E1BEE7 {
+  class "护理级别\nNurseLevel" as NurseLevel {
+    +levelId : int
+    +levelName : String
+    +levelStatus : int
+    +addLevel()
+    +configItems()
+  }
+
+  class "护理项目\nNurseContent" as NurseContent {
+    +itemId : int
+    +serialNumber : String
+    +nursingName : String
+    +servicePrice : String
+    +status : int
+  }
+
+  class "级别项目关联\nNurseLevelItem" as NurseLevelItem {
+    +levelId : int
+    +itemId : int
+  }
+
+  class "客户护理服务\nCustomerNurseItem" as CustomerNurseItem {
+    +id : int
+    +customerId : int
+    +itemId : int
+    +nurseNumber : int
+    +buyTime : Date
+    +maturityTime : Date
+    +purchase()
+    +renew()
+    +remove()
+  }
+
+  class "护理记录\nNurseRecord" as NurseRecord {
+    +recordId : int
+    +customerId : int
+    +itemId : int
+    +nursingTime : DateTime
+    +nursingCount : int
+    +userId : int
+    +createRecord()
+  }
+
+  NurseLevel "*" -- "*" NurseContent : NurseLevelItem
+  Customer "1" o-- "*" CustomerNurseItem
+  NurseContent "1" o-- "*" CustomerNurseItem
+  Customer "1" o-- "*" NurseRecord
+  NurseContent "1" o-- "*" NurseRecord
+  HealthManager "1" ..> NurseRecord : 执行
+  Customer "*" --> "0..1" NurseLevel : level_id
+  CustomerNurseItem ..> NurseRecord : 产生记录
+}
+
+package "申请与审批" #FFECB3 {
+  class "外出申请\nOutward" as Outward {
+    +outwardId : int
+    +customerId : int
+    +outgoingreason : String
+    +outgoingtime : Date
+    +expectedreturntime : Date
+    +actualreturntime : Date
+    +auditstatus : int
+    +auditperson : String
+    +audittime : DateTime
+    +submit()
+    +audit()
+    +registerReturn()
+  }
+
+  class "退住申请\nBackdown" as Backdown {
+    +backdownId : int
+    +customerId : int
+    +retreattime : Date
+    +retreattype : int
+    +retreatreason : String
+    +auditstatus : int
+    +auditperson : String
+    +audittime : DateTime
+    +submit()
+    +audit()
+  }
+
+  Customer "1" o-- "*" Outward
+  Customer "1" o-- "*" Backdown
+  Admin ..> Outward : 审批
+  Admin ..> Backdown : 审批
+  HealthManager ..> Outward : 申请
+  HealthManager ..> Backdown : 申请
+}
+
+@enduml

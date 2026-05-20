@@ -11,6 +11,7 @@ import com.neusoft.eldercare.mapper.NurseLevelMapper;
 import com.neusoft.eldercare.service.CustomerNurseItemService;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
 
@@ -38,6 +39,7 @@ public class NurseController {
     }
 
     @PostMapping("/content")
+    @PreAuthorize("hasRole('ADMIN')")
     public Result<NurseContent> addContent(@RequestBody NurseContent c) {
         c.setIsDeleted(0);
         contentMapper.insert(c);
@@ -45,6 +47,7 @@ public class NurseController {
     }
 
     @PutMapping("/content/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
     public Result<NurseContent> updateContent(@PathVariable Integer id, @RequestBody NurseContent c) {
         c.setId(id);
         contentMapper.updateById(c);
@@ -52,6 +55,7 @@ public class NurseController {
     }
 
     @DeleteMapping("/content/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
     public Result<Void> deleteContent(@PathVariable Integer id) {
         NurseContent c = contentMapper.selectById(id);
         c.setIsDeleted(1);
@@ -71,6 +75,7 @@ public class NurseController {
     }
 
     @PostMapping("/level")
+    @PreAuthorize("hasRole('ADMIN')")
     public Result<NurseLevel> addLevel(@RequestBody NurseLevel level) {
         level.setIsDeleted(0);
         levelMapper.insert(level);
@@ -78,6 +83,7 @@ public class NurseController {
     }
 
     @PutMapping("/level/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
     public Result<NurseLevel> updateLevel(@PathVariable Integer id, @RequestBody NurseLevel level) {
         level.setId(id);
         levelMapper.updateById(level);
@@ -90,23 +96,27 @@ public class NurseController {
     }
 
     @PostMapping("/customer-items")
+    @PreAuthorize("hasRole('ADMIN')")
     public Result<CustomerNurseItem> addCustomerItem(@RequestBody CustomerNurseItem item) {
         return Result.ok(customerNurseItemService.create(item));
     }
 
     @PutMapping("/customer-items/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
     public Result<CustomerNurseItem> updateCustomerItem(@PathVariable Integer id, @RequestBody CustomerNurseItem item) {
         item.setId(id);
         return Result.ok(customerNurseItemService.update(item));
     }
 
     @DeleteMapping("/customer-items/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
     public Result<Void> deleteCustomerItem(@PathVariable Integer id) {
         customerNurseItemService.delete(id);
         return Result.ok();
     }
 
     @PutMapping("/customer/{customerId}/level")
+    @PreAuthorize("hasRole('ADMIN')")
     public Result<Void> setCustomerLevel(@PathVariable Integer customerId, @RequestBody java.util.Map<String, Integer> body) {
         customerNurseItemService.setCustomerLevel(customerId, body.get("levelId"));
         return Result.ok();

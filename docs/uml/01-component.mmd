@@ -1,0 +1,22 @@
+flowchart TB
+  subgraph client ["客户端"]
+    Browser["浏览器"]
+    Vue["Vue3 + Element Plus + Pinia"]
+    Browser --> Vue
+  end
+
+  subgraph deploy ["腾讯云 CloudBase 线上"]
+    Hosting["静态托管 neusoft/v1"]
+    CFN["云函数 elderCareApi"]
+    MySQL[("MySQL VPC")]
+    Hosting --> Vue
+    Vue -->|HTTPS /api| CFN
+    CFN --> MySQL
+  end
+
+  subgraph local ["本地实训可选"]
+    Spring["Spring Boot 3 + JWT"]
+    MySQLLocal[("MySQL elder_care")]
+    Vue -.->|开发代理| Spring
+    Spring --> MySQLLocal
+  end

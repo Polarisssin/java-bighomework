@@ -47,7 +47,10 @@ function mapCustomer(r) {
 
 function mapUser(r) {
   const u = rowToCamel(r);
-  if (u) u.phoneNumber = u.phoneNumber || r.phone_number;
+  if (u) {
+    u.phoneNumber = u.phoneNumber || r.phone_number;
+    delete u.password;
+  }
   return u;
 }
 

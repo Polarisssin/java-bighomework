@@ -47,6 +47,8 @@
 import { onMounted, ref } from "vue";
 import { ElMessage } from "element-plus";
 import request from "@/utils/request";
+import { confirmDanger } from "@/utils/confirm-danger";
+import { UI_TEXT } from "@/constants/ui-text";
 
 const loading = ref(false);
 const customers = ref<any[]>([]);
@@ -77,6 +79,7 @@ async function load() {
 }
 
 async function onAssign(row: any, userId: number) {
+  await confirmDanger(UI_TEXT.confirmAssignCaregiver, "分配管家");
   await request.put("/caregiver/assign", { customerId: row.id, userId: userId > 0 ? userId : -1 });
   row.userId = userId > 0 ? userId : -1;
   ElMessage.success("分配已保存");

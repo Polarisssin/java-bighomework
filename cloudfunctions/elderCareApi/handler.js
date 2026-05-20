@@ -200,9 +200,11 @@ const {
   getRoleId,
   bedStatusNum,
   assertCaregiverOwnsCustomer,
+  requireAdmin,
   validateOutwardDates,
   validateCheckinDates,
   validateBuyMaturityDates,
+  validateNurseRecordExecution,
 } = require("./util");
 
 const ORGAN_KEYS = ["head", "heart", "lungL", "lungR", "liver", "gut"];
@@ -369,6 +371,10 @@ async function handle(method, path, body, qs, event) {
     };
   }
 
+  if (!authUser?.uid) {
+    throw { status: 401, message: "未登录或登录已过期" };
+  }
+
   if (method === "GET" && path === "/api/customers") {
     const residence = qs.residence || "active";
     let sql;
@@ -401,49 +407,58 @@ async function handle(method, path, body, qs, event) {
   }
 
   if (method === "POST" && path === "/api/customers/checkin") {
+    requireAdmin(authUser);
     const checkinErr = validateCheckinDates(body.checkinDate, body.expirationDate);
     if (checkinErr) throw { status: 400, message: checkinErr };
+    if (!body.bedId) throw { status: 400, message: "请选择床位" };
     const age = body.birthday ? calcAge(body.birthday) : body.customerAge || 0;
-    const r = await db.query(
-      `INSERT INTO customer (customer_name,customer_age,customer_sex,idcard,room_no,building_no,
-        checkin_date,expiration_date,contact_tel,bed_id,blood_type,filepath,user_id,level_id,family_member,birthday,is_deleted,resident_status)
-       VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,0,1)`,
-      [
-        body.customerName,
-        age,
-        body.customerSex ?? 0,
-        body.idcard || "",
-        body.roomNo || "",
-        "606",
-        body.checkinDate,
-        body.expirationDate,
-        body.contactTel || "",
-        body.bedId || null,
-        body.bloodType || "A",
-        body.filepath || "/avatar/default.png",
-        body.userId ?? -1,
-        body.levelId || null,
-        body.familyMember || null,
-        body.birthday || null,
-      ]
-    );
-    const id = r.insertId;
-    if (body.bedId) {
-      const bed = await db.queryOne("SELECT * FROM bed WHERE id=?", [body.bedId]);
-      if (bed && bedStatusNum(bed.bed_status) === 1) {
-        await db.query("UPDATE bed SET bed_status=2 WHERE id=?", [body.bedId]);
-        if (bed.room_no) await db.query("UPDATE customer SET room_no=? WHERE id=?", [String(bed.room_no), id]);
-        await openBedDetail(id, body.bedId, body.checkinDate, body.expirationDate);
+    const customerId = await db.withTransaction(async (tx) => {
+      const bed = await tx.queryOne("SELECT * FROM bed WHERE id=? FOR UPDATE", [body.bedId]);
+      if (!bed || bedStatusNum(bed.bed_status) !== 1) {
+        throw { status: 400, message: "床位不可用" };
       }
-    }
-    if (body.levelId) await batchPurchaseLevelItems(id, Number(body.levelId));
-    return M.mapCustomer(await db.queryOne("SELECT * FROM customer WHERE id=?", [id]));
+      const r = await tx.query(
+        `INSERT INTO customer (customer_name,customer_age,customer_sex,idcard,room_no,building_no,
+          checkin_date,expiration_date,contact_tel,bed_id,blood_type,filepath,user_id,level_id,family_member,birthday,is_deleted,resident_status)
+         VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,0,1)`,
+        [
+          body.customerName,
+          age,
+          body.customerSex ?? 0,
+          body.idcard || "",
+          String(bed.room_no || body.roomNo || ""),
+          "606",
+          body.checkinDate,
+          body.expirationDate,
+          body.contactTel || "",
+          body.bedId,
+          body.bloodType || "A",
+          body.filepath || "/avatar/default.png",
+          body.userId ?? -1,
+          body.levelId || null,
+          body.familyMember || null,
+          body.birthday || null,
+        ]
+      );
+      const id = r.insertId;
+      await tx.query("UPDATE bed SET bed_status=2 WHERE id=?", [body.bedId]);
+      return id;
+    });
+    await openBedDetail(customerId, body.bedId, body.checkinDate, body.expirationDate);
+    if (body.levelId) await batchPurchaseLevelItems(customerId, Number(body.levelId));
+    return M.mapCustomer(await db.queryOne("SELECT * FROM customer WHERE id=?", [customerId]));
   }
 
   if (method === "PUT" && path.match(/^\/api\/customers\/\d+$/)) {
     const id = Number(path.split("/").pop());
     const existing = await db.queryOne("SELECT * FROM customer WHERE id=? AND is_deleted=0", [id]);
     if (!existing) throw { status: 404, message: "客户不存在" };
+    if (getRoleId(authUser) === 2) {
+      await assertCaregiverOwnsCustomer(db, authUser, id);
+      if (body.userId !== undefined && Number(body.userId) !== Number(existing.user_id)) {
+        throw { status: 403, message: "健康管家不能修改服务对象分配" };
+      }
+    }
     const checkinDate = body.checkinDate ?? existing.checkin_date;
     const expirationDate = body.expirationDate ?? existing.expiration_date;
     const checkinErr = validateCheckinDates(checkinDate, expirationDate);
@@ -527,6 +542,7 @@ async function handle(method, path, body, qs, event) {
     const id = Number(path.split("/").pop());
     const c = await db.queryOne("SELECT * FROM customer WHERE id=? AND is_deleted=0", [id]);
     if (!c) throw { status: 404, message: "客户不存在或已归档" };
+    await assertCaregiverOwnsCustomer(db, authUser, id);
     if (c.bed_id) {
       await db.query("UPDATE bed SET bed_status=1 WHERE id=?", [c.bed_id]);
       await closeActiveBedDetail(id, c.bed_id, todayIso());
@@ -618,17 +634,35 @@ async function handle(method, path, body, qs, event) {
   if (method === "POST" && path === "/api/beds/swap") {
     const customerId = Number(qs.customerId);
     const newBedId = Number(qs.newBedId);
-    const c = await db.queryOne("SELECT * FROM customer WHERE id=? AND is_deleted=0", [customerId]);
-    if (!c) throw { status: 400, message: "客户不存在" };
-    const newBed = await db.queryOne("SELECT * FROM bed WHERE id=?", [newBedId]);
-    if (!newBed || newBed.bed_status !== 1) throw { status: 400, message: "目标床位不可用" };
-    if (c.bed_id) await db.query("UPDATE bed SET bed_status=1 WHERE id=?", [c.bed_id]);
-    await db.query("UPDATE bed SET bed_status=2 WHERE id=?", [newBedId]);
+    await assertCaregiverOwnsCustomer(db, authUser, customerId);
+    await ensureBedDetailsTable();
     const today = todayIso();
-    if (c.bed_id) await closeActiveBedDetail(customerId, c.bed_id, today);
-    await db.query("UPDATE customer SET bed_id=?, room_no=? WHERE id=?", [newBedId, String(newBed.room_no), customerId]);
-    const cust = await db.queryOne("SELECT checkin_date, expiration_date FROM customer WHERE id=?", [customerId]);
-    await openBedDetail(customerId, newBedId, today, cust?.expiration_date);
+    await db.withTransaction(async (tx) => {
+      const c = await tx.queryOne("SELECT * FROM customer WHERE id=? AND is_deleted=0 FOR UPDATE", [customerId]);
+      if (!c) throw { status: 400, message: "客户不存在" };
+      const newBed = await tx.queryOne("SELECT * FROM bed WHERE id=? FOR UPDATE", [newBedId]);
+      if (!newBed || bedStatusNum(newBed.bed_status) !== 1) throw { status: 400, message: "目标床位不可用" };
+      if (c.bed_id && Number(c.bed_id) === newBedId) throw { status: 400, message: "已在该床位" };
+      if (c.bed_id) {
+        await tx.query("UPDATE bed SET bed_status=1 WHERE id=?", [c.bed_id]);
+        await tx.query(
+          `UPDATE beddetails SET end_date=?, use_status=2
+           WHERE customer_id=? AND bed_id=? AND use_status=1 AND is_deleted=0`,
+          [today, customerId, c.bed_id]
+        );
+      }
+      await tx.query("UPDATE bed SET bed_status=2 WHERE id=?", [newBedId]);
+      await tx.query("UPDATE customer SET bed_id=?, room_no=? WHERE id=?", [
+        newBedId,
+        String(newBed.room_no),
+        customerId,
+      ]);
+      await tx.query(
+        `INSERT INTO beddetails (start_date,end_date,bed_details,customer_id,bed_id,is_deleted,use_status)
+         VALUES (?,?,?,?,?,0,1)`,
+        [today, c.expiration_date || null, `${newBed.room_no}-${newBed.bed_no}`, customerId, newBedId]
+      );
+    });
     return null;
   }
 
@@ -861,6 +895,11 @@ async function handle(method, path, body, qs, event) {
       row.executionCycle = r.execution_cycle;
       row.executionTimes = r.execution_times;
       row.todayDoneCount = doneMap.get(r.item_id) || 0;
+      row.serviceStatus = computeServiceStatus({
+        nurseNumber: r.nurse_number,
+        maturityTime: r.maturity_time,
+      });
+      row.canExecute = row.serviceStatus === "数量正常";
       return row;
     });
     const todayRecords = await db.query(
@@ -1092,20 +1131,27 @@ async function handle(method, path, body, qs, event) {
     const uid = body.userId || authUser?.uid;
     if (!uid) throw { status: 400, message: "缺少执行人" };
     if (!body.customerId || !body.itemId) throw { status: 400, message: "请选择老人与护理项目" };
-    await assertCaregiverOwnsCustomer(db, authUser, Number(body.customerId));
+    const customerId = Number(body.customerId);
+    const itemId = Number(body.itemId);
+    await assertCaregiverOwnsCustomer(db, authUser, customerId);
+    const prep = await validateNurseRecordExecution(db, customerId, itemId, body.nursingCount ?? 1);
     const nursingTime = body.nursingTime || new Date().toISOString().slice(0, 19).replace("T", " ");
     const r = await db.query(
       `INSERT INTO nurserecord (customer_id, item_id, nursing_time, nursing_content, nursing_count, user_id, is_deleted)
        VALUES (?,?,?,?,?,?,0)`,
       [
-        body.customerId,
-        body.itemId,
+        customerId,
+        itemId,
         nursingTime,
         body.nursingContent || null,
-        body.nursingCount ?? 1,
+        prep.deduct,
         uid,
       ]
     );
+    await db.query("UPDATE customernurseitem SET nurse_number = nurse_number - ? WHERE id=?", [
+      prep.deduct,
+      prep.cniId,
+    ]);
     const row = await db.queryOne(
       `SELECT nr.*, c.customer_name, nc.nursing_name, nc.serial_number, u.nickname AS nurse_name
        FROM nurserecord nr
@@ -1120,10 +1166,17 @@ async function handle(method, path, body, qs, event) {
   if (method === "DELETE" && path.match(/^\/api\/nurse\/records\/\d+$/)) {
     await ensureNurseRecordTable();
     const id = Number(path.split("/").pop());
-    const rec = await db.queryOne("SELECT customer_id FROM nurserecord WHERE id=? AND is_deleted=0", [id]);
+    const rec = await db.queryOne(
+      "SELECT customer_id, item_id, nursing_count FROM nurserecord WHERE id=? AND is_deleted=0",
+      [id]
+    );
     if (!rec) throw { status: 404, message: "记录不存在" };
     await assertCaregiverOwnsCustomer(db, authUser, rec.customer_id);
     await db.query("UPDATE nurserecord SET is_deleted=1 WHERE id=?", [id]);
+    await db.query(
+      "UPDATE customernurseitem SET nurse_number = nurse_number + ? WHERE customer_id=? AND item_id=? AND is_deleted=0",
+      [Number(rec.nursing_count || 1), rec.customer_id, rec.item_id]
+    );
     return null;
   }
 
@@ -1171,7 +1224,7 @@ async function handle(method, path, body, qs, event) {
   }
 
   if (method === "PUT" && path.match(/^\/api\/users\/\d+\/reset-password$/)) {
-    if (getRoleId(authUser) !== 1) throw { status: 403, message: "仅管理员可操作" };
+    requireAdmin(authUser);
     const id = Number(path.split("/")[3]);
     const pwd = body.password || body.newPassword;
     if (!pwd || String(pwd).length < 4) throw { status: 400, message: "密码至少4位" };
@@ -1182,7 +1235,7 @@ async function handle(method, path, body, qs, event) {
   }
 
   if (method === "PUT" && path.match(/^\/api\/users\/\d+\/status$/)) {
-    if (getRoleId(authUser) !== 1) throw { status: 403, message: "仅管理员可操作" };
+    requireAdmin(authUser);
     const id = Number(path.split("/")[3]);
     const disabled = body.disabled === true || body.isDeleted === 1;
     if (Number(authUser.uid) === id && disabled) {
@@ -1245,7 +1298,7 @@ async function handle(method, path, body, qs, event) {
   }
 
   if (method === "POST" && path === "/api/users") {
-    if (getRoleId(authUser) !== 1) throw { status: 403, message: "仅管理员可创建用户" };
+    requireAdmin(authUser);
     const phone = String(body.phoneNumber || "");
     const pwd =
       body.password ||
@@ -1279,10 +1332,14 @@ async function handle(method, path, body, qs, event) {
   }
 
   if (method === "PUT" && path.match(/^\/api\/approval\/outward\/\d+\/audit$/)) {
+    requireAdmin(authUser);
     const id = Number(path.split("/")[4]);
     const pass = qs.pass === "true";
+    const pending = await db.queryOne("SELECT auditstatus, customer_id FROM outward WHERE id=? AND is_deleted=0", [id]);
+    if (!pending) throw { status: 404, message: "记录不存在" };
+    if (Number(pending.auditstatus) !== 0) throw { status: 400, message: "该申请已审批，请勿重复操作" };
     const name = await auditorName(authUser);
-    await db.query("UPDATE outward SET auditstatus=?, auditperson=?, audittime=NOW() WHERE id=?", [
+    await db.query("UPDATE outward SET auditstatus=?, auditperson=?, audittime=NOW() WHERE id=? AND auditstatus=0", [
       pass ? 1 : 2,
       name,
       id,
@@ -1298,6 +1355,7 @@ async function handle(method, path, body, qs, event) {
   }
 
   if (method === "PUT" && path.match(/^\/api\/approval\/outward\/\d+\/return$/)) {
+    requireAdmin(authUser);
     const id = Number(path.split("/")[4]);
     const actualReturnTime = qs.actualReturnTime || new Date().toISOString().slice(0, 10);
     await db.query("UPDATE outward SET actualreturntime=? WHERE id=?", [actualReturnTime, id]);
@@ -1339,10 +1397,14 @@ async function handle(method, path, body, qs, event) {
   }
 
   if (method === "PUT" && path.match(/^\/api\/approval\/backdown\/\d+\/audit$/)) {
+    requireAdmin(authUser);
     const id = Number(path.split("/")[4]);
     const pass = qs.pass === "true";
+    const pending = await db.queryOne("SELECT auditstatus FROM backdown WHERE id=? AND is_deleted=0", [id]);
+    if (!pending) throw { status: 404, message: "记录不存在" };
+    if (Number(pending.auditstatus) !== 0) throw { status: 400, message: "该申请已审批，请勿重复操作" };
     const name = await auditorName(authUser);
-    await db.query("UPDATE backdown SET auditstatus=?, auditperson=?, audittime=NOW() WHERE id=?", [
+    await db.query("UPDATE backdown SET auditstatus=?, auditperson=?, audittime=NOW() WHERE id=? AND auditstatus=0", [
       pass ? 1 : 2,
       name,
       id,

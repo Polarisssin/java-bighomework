@@ -45,9 +45,17 @@
             <el-table-column prop="executionCycle" label="周期" width="80" />
             <el-table-column prop="nurseNumber" label="购买次数" width="80" />
             <el-table-column prop="todayDoneCount" label="今日已做" width="80" />
-            <el-table-column label="操作" width="90">
+            <el-table-column prop="serviceStatus" label="状态" width="88" />
+            <el-table-column label="操作" width="100">
               <template #default="{ row }">
-                <el-button link type="primary" @click="openRecord(row)">登记</el-button>
+                <el-button
+                  link
+                  type="primary"
+                  :disabled="row.canExecute === false"
+                  @click="openRecord(row)"
+                >
+                  登记
+                </el-button>
               </template>
             </el-table-column>
           </el-table>
@@ -92,6 +100,9 @@ import { computed, onMounted, reactive, ref, watch } from "vue";
 import { useRoute } from "vue-router";
 import { ElMessage } from "element-plus";
 import request from "@/utils/request";
+import { confirmDanger } from "@/utils/confirm-danger";
+import { nurseItemExecuteHint } from "@/utils/nurse-item";
+import { UI_TEXT } from "@/constants/ui-text";
 import { formatDateTime } from "@/utils/date";
 import { useUserStore } from "@/stores/user";
 
@@ -145,6 +156,11 @@ function onSelectElder(row: any) {
 }
 
 function openRecord(item: any) {
+  const check = nurseItemExecuteHint(item);
+  if (!check.ok) {
+    ElMessage.warning(check.reason || "当前不可登记");
+    return;
+  }
   const now = new Date();
   const pad = (n: number) => String(n).padStart(2, "0");
   const nursingTime = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())}:00`;
@@ -161,6 +177,7 @@ function openRecord(item: any) {
 }
 
 async function saveRecord() {
+  await confirmDanger(UI_TEXT.confirmNurseRecord, "登记护理");
   await request.post("/nurse/records", {
     customerId: form.customerId,
     itemId: form.itemId,

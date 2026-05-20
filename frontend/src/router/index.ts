@@ -44,7 +44,12 @@ const router = createRouter({
 router.beforeEach((to) => {
   const store = useUserStore();
   if (to.meta.public) return true;
-  if (!store.token) return "/login";
+  const token = localStorage.getItem("token");
+  if (!token) {
+    if (store.token) store.logout();
+    return "/login";
+  }
+  if (token !== store.token) store.token = token;
 
   const menus = store.menus || [];
   if (!canAccessPath(to.path, menus)) {

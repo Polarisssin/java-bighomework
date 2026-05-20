@@ -110,6 +110,8 @@
 import { onMounted, reactive, ref } from "vue";
 import { ElMessage } from "element-plus";
 import request from "@/utils/request";
+import { confirmDanger } from "@/utils/confirm-danger";
+import { UI_TEXT } from "@/constants/ui-text";
 import { formatDate } from "@/utils/date";
 
 const loading = ref(false);
@@ -170,6 +172,7 @@ async function swap() {
     ElMessage.warning("请选择老人和空闲床位");
     return;
   }
+  await confirmDanger(UI_TEXT.confirmSwapBed, "床位调换");
   swapping.value = true;
   try {
     await request.post("/beds/swap", null, {

@@ -1,0 +1,28 @@
+flowchart LR
+  subgraph actors ["参与者"]
+    Admin(("系统管理员"))
+    Nurse(("健康管家"))
+  end
+
+  subgraph adminUC ["管理员用例"]
+    UC1["入住/编辑/退住归档"]
+    UC2["床位示意图与管理"]
+    UC3["护理项目/级别配置"]
+    UC4["客户护理设置与购买"]
+    UC5["服务关注与续费"]
+    UC6["外出/退住审批"]
+    UC7["用户管理"]
+    UC8["分配健康管家"]
+    UC9["工作台统计"]
+  end
+
+  subgraph nurseUC ["管家用例"]
+    UN1["查看负责老人"]
+    UN2["日常护理计划"]
+    UN3["登记护理记录"]
+    UN4["外出/退住申请"]
+    UN5["老人状态/身体详情"]
+  end
+
+  Admin --> UC1 & UC2 & UC3 & UC4 & UC5 & UC6 & UC7 & UC8 & UC9
+  Nurse --> UN1 & UN2 & UN3 & UN4 & UN5

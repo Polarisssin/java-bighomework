@@ -1,0 +1,16 @@
+sequenceDiagram
+  actor A as 管理员
+  participant V as 入住登记页
+  participant API as elderCareApi
+  participant DB as MySQL
+
+  A->>V: 填写老人信息并选床位
+  V->>API: POST /api/customers/checkin
+  API->>DB: INSERT customer
+  API->>DB: UPDATE bed 占用
+  API->>DB: INSERT beddetails
+  opt 设置护理级别
+    API->>DB: UPDATE level_id
+  end
+  API-->>V: 客户对象
+  V-->>A: 列表刷新

@@ -71,7 +71,7 @@
 
 <script setup lang="ts">
 import { onMounted, reactive, ref } from "vue";
-import { ElMessage } from "element-plus";
+import { ElMessage, ElMessageBox } from "element-plus";
 import request from "@/utils/request";
 
 const loading = ref(false);
@@ -129,6 +129,11 @@ async function saveLevel() {
 
 async function toggleStatus(row: any) {
   const next = row.levelStatus === 1 ? 2 : 1;
+  await ElMessageBox.confirm(
+    next === 1 ? `确认启用级别「${row.levelName}」？` : `确认停用级别「${row.levelName}」？`,
+    "级别状态",
+    { type: "warning" }
+  );
   await request.put(`/nurse/level/${row.id}`, { levelStatus: next });
   ElMessage.success(next === 1 ? "已启用" : "已停用");
   load();
@@ -149,6 +154,11 @@ async function saveItems() {
     ElMessage.warning("请保留上一级全部护理项目");
     return;
   }
+  await ElMessageBox.confirm(
+    `确认保存级别「${currentLevel.value?.levelName}」的护理项目配置？将先清空本级再写入。`,
+    "保存配置",
+    { type: "warning" }
+  );
   saving.value = true;
   try {
     await request.put(`/nurse/level/${currentLevel.value.id}/items`, { itemIds: selectedIds.value });

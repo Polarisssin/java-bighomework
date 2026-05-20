@@ -3,10 +3,15 @@ package com.neusoft.eldercare.controller;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.neusoft.eldercare.common.Result;
+import com.neusoft.eldercare.dto.UserVo;
 import com.neusoft.eldercare.entity.SysUser;
 import com.neusoft.eldercare.mapper.SysUserMapper;
+import com.neusoft.eldercare.security.ForbiddenException;
+import com.neusoft.eldercare.security.LoginUser;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
 
@@ -21,7 +26,7 @@ public class UserController {
     private final SysUserMapper userMapper;
 
     @GetMapping
-    public Result<Page<SysUser>> page(
+    public Result<Page<UserVo>> page(
             @RequestParam(required = false) String keyword,
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "10") int size) {
@@ -31,28 +36,35 @@ public class UserController {
                         .like(SysUser::getNickname, keyword)
                         .or()
                         .like(SysUser::getUsername, keyword));
-        return Result.ok(userMapper.selectPage(new Page<>(page, size), qw));
+        Page<SysUser> raw = userMapper.selectPage(new Page<>(page, size), qw);
+        Page<UserVo> voPage = new Page<>(raw.getCurrent(), raw.getSize(), raw.getTotal());
+        voPage.setRecords(raw.getRecords().stream().map(UserVo::from).toList());
+        return Result.ok(voPage);
     }
 
     @PostMapping
-    public Result<SysUser> create(@RequestBody SysUser user) {
+    @PreAuthorize("hasRole('ADMIN')")
+    public Result<UserVo> create(@RequestBody SysUser user) {
         user.setIsDeleted(0);
         if (!StringUtils.hasText(user.getPassword()) && StringUtils.hasText(user.getPhoneNumber())) {
             String phone = user.getPhoneNumber();
             user.setPassword(phone.length() >= 6 ? phone.substring(phone.length() - 6) : phone);
         }
         userMapper.insert(user);
-        return Result.ok(user);
+        return Result.ok(UserVo.from(user));
     }
 
     @PutMapping("/{id}")
-    public Result<SysUser> update(@PathVariable Integer id, @RequestBody SysUser user) {
+    @PreAuthorize("hasRole('ADMIN')")
+    public Result<UserVo> update(@PathVariable Integer id, @RequestBody SysUser user) {
         user.setId(id);
+        user.setPassword(null);
         userMapper.updateById(user);
-        return Result.ok(userMapper.selectById(id));
+        return Result.ok(UserVo.from(userMapper.selectById(id)));
     }
 
     @PutMapping("/{id}/reset-password")
+    @PreAuthorize("hasRole('ADMIN')")
     public Result<Void> resetPassword(@PathVariable Integer id, @RequestBody SysUser body) {
         SysUser u = userMapper.selectById(id);
         if (u == null) {
@@ -69,12 +81,19 @@ public class UserController {
     }
 
     @PutMapping("/{id}/status")
-    public Result<Void> updateStatus(@PathVariable Integer id, @RequestBody Map<String, Object> body) {
+    @PreAuthorize("hasRole('ADMIN')")
+    public Result<Void> updateStatus(
+            @PathVariable Integer id,
+            @RequestBody Map<String, Object> body,
+            @AuthenticationPrincipal LoginUser loginUser) {
         SysUser u = userMapper.selectById(id);
         if (u == null) {
             return Result.fail(404, "用户不存在");
         }
         boolean disabled = Boolean.TRUE.equals(body.get("disabled"));
+        if (disabled && loginUser.getUser().getId().equals(id)) {
+            throw new ForbiddenException("不能禁用当前登录账号");
+        }
         SysUser patch = new SysUser();
         patch.setId(id);
         patch.setIsDeleted(disabled ? 1 : 0);

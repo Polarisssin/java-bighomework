@@ -22,4 +22,5 @@ public class Backdown {
     private Integer auditstatus;
     private String auditperson;
     private LocalDateTime audittime;
+    private Integer submitUserId;
 }

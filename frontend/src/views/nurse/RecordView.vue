@@ -96,6 +96,9 @@
 import { onMounted, reactive, ref } from "vue";
 import { ElMessage, ElMessageBox } from "element-plus";
 import request from "@/utils/request";
+import { confirmDanger } from "@/utils/confirm-danger";
+import { nurseItemExecuteHint } from "@/utils/nurse-item";
+import { UI_TEXT } from "@/constants/ui-text";
 import { formatDateTime } from "@/utils/date";
 import { displayCustomerName } from "@/utils/customer";
 import { useUserStore } from "@/stores/user";
@@ -142,7 +145,10 @@ async function onCustomerChange(customerId?: number) {
     return;
   }
   const pageData = await request.get("/nurse/customer-items", { params: { customerId } });
-  itemOptions.value = pageData.records.filter((r: any) => !r.isLevelTemplate);
+  itemOptions.value = pageData.records.filter((r: any) => {
+    if (r.isLevelTemplate || !r.id) return false;
+    return nurseItemExecuteHint(r).ok;
+  });
 }
 
 function openDialog() {
@@ -166,6 +172,13 @@ async function save() {
     ElMessage.warning("请选择老人与护理项目");
     return;
   }
+  const item = itemOptions.value.find((n) => (n.itemId || n.id) === form.itemId);
+  const check = item ? nurseItemExecuteHint(item) : { ok: false, reason: "项目不可用" };
+  if (!check.ok) {
+    ElMessage.warning(check.reason || "当前不可登记");
+    return;
+  }
+  await confirmDanger(UI_TEXT.confirmNurseRecord, "新增护理记录");
   await request.post("/nurse/records", form);
   ElMessage.success("已保存");
   visible.value = false;

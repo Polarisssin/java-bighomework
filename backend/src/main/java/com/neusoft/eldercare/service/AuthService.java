@@ -1,6 +1,7 @@
 package com.neusoft.eldercare.service;
 
 import com.neusoft.eldercare.dto.LoginRequest;
+import com.neusoft.eldercare.dto.UserVo;
 import com.neusoft.eldercare.entity.Menu;
 import com.neusoft.eldercare.entity.SysUser;
 import com.neusoft.eldercare.mapper.MenuMapper;
@@ -23,14 +24,17 @@ public class AuthService {
 
     public Map<String, Object> login(LoginRequest req) {
         SysUser user = userMapper.findByUsername(req.getUsername());
-        if (user == null || !user.getPassword().equals(req.getPassword())) {
+        if (user == null || user.getIsDeleted() != null && user.getIsDeleted() != 0) {
+            throw new IllegalArgumentException("用户名或密码错误");
+        }
+        if (!user.getPassword().equals(req.getPassword())) {
             throw new IllegalArgumentException("用户名或密码错误");
         }
         String token = jwtUtil.generateToken(user.getId(), user.getUsername(), user.getRoleId());
         List<Menu> menus = menuMapper.listByRoleId(user.getRoleId());
         Map<String, Object> data = new HashMap<>();
         data.put("token", token);
-        data.put("user", user);
+        data.put("user", UserVo.from(user));
         data.put("menus", menus);
         return data;
     }

@@ -26,8 +26,11 @@
       </el-table-column>
       <el-table-column label="操作" width="160">
         <template #default="{ row }">
-          <el-button v-if="row.auditstatus === 0" link type="success" @click="audit(row.id, true)">通过</el-button>
-          <el-button v-if="row.auditstatus === 0" link type="danger" @click="audit(row.id, false)">拒绝</el-button>
+          <template v-if="row.auditstatus === 0">
+            <el-button link type="success" @click="audit(row.id, true)">通过</el-button>
+            <el-button link type="danger" @click="audit(row.id, false)">拒绝</el-button>
+          </template>
+          <el-tag v-else type="info" size="small">已审批</el-tag>
         </template>
       </el-table-column>
     </el-table>
@@ -68,7 +71,8 @@
 
 <script setup lang="ts">
 import { onMounted, reactive, ref } from "vue";
-import { ElMessage } from "element-plus";
+import { ElMessage, ElMessageBox } from "element-plus";
+import { UI_TEXT } from "@/constants/ui-text";
 import request from "@/utils/request";
 import { formatDate } from "@/utils/date";
 import { displayCustomerName } from "@/utils/customer";
@@ -132,6 +136,11 @@ async function submit() {
 }
 
 async function audit(id: number, pass: boolean) {
+  await ElMessageBox.confirm(
+    pass ? UI_TEXT.confirmAuditPass : UI_TEXT.confirmAuditReject,
+    "审批确认",
+    { type: "warning" }
+  );
   await request.put(`/approval/backdown/${id}/audit`, null, { params: { pass } });
   ElMessage.success(pass ? "已通过" : "已拒绝");
   load();

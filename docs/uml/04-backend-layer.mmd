@@ -1,0 +1,39 @@
+classDiagram
+  direction LR
+
+  class AuthController
+  class CustomerController
+  class BedController
+  class NurseController
+  class ApprovalController
+  class UserController
+  class DashboardController
+
+  class AuthService
+  class CustomerService
+  class BedService
+  class ApprovalService
+
+  class CustomerMapper
+  class BedMapper
+  class SysUserMapper
+
+  class Customer
+  class Bed
+  class SysUser
+
+  AuthController --> AuthService
+  CustomerController --> CustomerService
+  BedController --> BedService
+  NurseController --> CustomerService
+  ApprovalController --> ApprovalService
+  UserController --> AuthService
+  DashboardController --> CustomerService
+
+  CustomerService --> CustomerMapper
+  BedService --> BedMapper
+  AuthService --> SysUserMapper
+
+  CustomerMapper ..> Customer
+  BedMapper ..> Bed
+  SysUserMapper ..> SysUser

@@ -85,6 +85,31 @@ function validateBuyMaturityDates(buyTime, maturityTime) {
   return null;
 }
 
+function todayIso() {
+  return new Date().toISOString().slice(0, 10);
+}
+
+function requireAdmin(authUser) {
+  if (getRoleId(authUser) !== 1) throw { status: 403, message: "仅管理员可操作" };
+}
+
+async function validateNurseRecordExecution(db, customerId, itemId, nursingCount) {
+  const cnt = Math.max(1, Number(nursingCount) || 1);
+  if (!Number.isFinite(cnt) || cnt < 1) throw { status: 400, message: "护理次数至少为 1" };
+  const cni = await db.queryOne(
+    "SELECT id, nurse_number, maturity_time FROM customernurseitem WHERE customer_id=? AND item_id=? AND is_deleted=0",
+    [customerId, itemId]
+  );
+  if (!cni) throw { status: 400, message: "该老人未购买此护理项目或已删除" };
+  const remaining = Number(cni.nurse_number ?? 0);
+  if (remaining <= 0) throw { status: 400, message: "护理项目剩余次数为 0，无法登记" };
+  const mat = String(cni.maturity_time || "").slice(0, 10);
+  const today = todayIso();
+  if (mat && mat < today) throw { status: 400, message: "护理项目已到期，无法登记" };
+  if (cnt > remaining) throw { status: 400, message: `本次次数不能超过剩余次数（剩余 ${remaining} 次）` };
+  return { cniId: cni.id, deduct: cnt };
+}
+
 module.exports = {
   rowToCamel,
   rowsToCamel,
@@ -93,7 +118,10 @@ module.exports = {
   getRoleId,
   bedStatusNum,
   assertCaregiverOwnsCustomer,
+  requireAdmin,
   validateOutwardDates,
   validateCheckinDates,
   validateBuyMaturityDates,
+  validateNurseRecordExecution,
+  todayIso,
 };

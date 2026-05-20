@@ -1,0 +1,14 @@
+sequenceDiagram
+  actor U as 用户
+  participant V as Vue前端
+  participant A as API层
+  participant D as MySQL
+
+  U->>V: 输入账号密码
+  V->>A: POST /api/auth/login
+  A->>D: 校验 user 表
+  D-->>A: 用户与 role_id
+  A->>D: 查询 rolemenu 与 menu
+  A-->>V: token + user + menus
+  V->>V: Pinia 存储与路由守卫
+  V-->>U: 进入工作台

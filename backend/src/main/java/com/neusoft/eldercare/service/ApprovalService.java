@@ -10,10 +10,11 @@ import com.neusoft.eldercare.mapper.BackdownMapper;
 import com.neusoft.eldercare.mapper.BedMapper;
 import com.neusoft.eldercare.mapper.CustomerMapper;
 import com.neusoft.eldercare.mapper.OutwardMapper;
+import com.neusoft.eldercare.security.LoginUser;
+import com.neusoft.eldercare.security.SecurityUtils;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.util.StringUtils;
 
 import java.time.LocalDateTime;
 
@@ -26,10 +27,15 @@ public class ApprovalService {
     private final CustomerMapper customerMapper;
     private final BedMapper bedMapper;
 
-    public Page<Outward> pageOutward(String customerName, int page, int size) {
+    public Page<Outward> pageOutward(String customerName, Integer submitUserId, LoginUser loginUser, int page, int size) {
         LambdaQueryWrapper<Outward> qw = new LambdaQueryWrapper<Outward>()
                 .eq(Outward::getIsDeleted, 0)
                 .orderByDesc(Outward::getId);
+        if (SecurityUtils.isCaregiver(loginUser)) {
+            qw.eq(Outward::getSubmitUserId, loginUser.getUser().getId());
+        } else if (submitUserId != null) {
+            qw.eq(Outward::getSubmitUserId, submitUserId);
+        }
         return outwardMapper.selectPage(new Page<>(page, size), qw);
     }
 
@@ -55,9 +61,16 @@ public class ApprovalService {
         }
     }
 
-    public Page<Backdown> pageBackdown(String customerName, int page, int size) {
-        return backdownMapper.selectPage(new Page<>(page, size),
-                new LambdaQueryWrapper<Backdown>().eq(Backdown::getIsDeleted, 0).orderByDesc(Backdown::getId));
+    public Page<Backdown> pageBackdown(String customerName, Integer submitUserId, LoginUser loginUser, int page, int size) {
+        LambdaQueryWrapper<Backdown> qw = new LambdaQueryWrapper<Backdown>()
+                .eq(Backdown::getIsDeleted, 0)
+                .orderByDesc(Backdown::getId);
+        if (SecurityUtils.isCaregiver(loginUser)) {
+            qw.eq(Backdown::getSubmitUserId, loginUser.getUser().getId());
+        } else if (submitUserId != null) {
+            qw.eq(Backdown::getSubmitUserId, submitUserId);
+        }
+        return backdownMapper.selectPage(new Page<>(page, size), qw);
     }
 
     @Transactional
@@ -89,16 +102,24 @@ public class ApprovalService {
         }
     }
 
-    public Outward createOutward(Outward outward) {
+    public Outward createOutward(Outward outward, LoginUser loginUser) {
+        SecurityUtils.assertCaregiverOwnsCustomer(customerMapper, outward.getCustomerId());
         outward.setAuditstatus(0);
         outward.setIsDeleted(0);
+        if (outward.getSubmitUserId() == null) {
+            outward.setSubmitUserId(loginUser.getUser().getId());
+        }
         outwardMapper.insert(outward);
         return outward;
     }
 
-    public Backdown createBackdown(Backdown backdown) {
+    public Backdown createBackdown(Backdown backdown, LoginUser loginUser) {
+        SecurityUtils.assertCaregiverOwnsCustomer(customerMapper, backdown.getCustomerId());
         backdown.setAuditstatus(0);
         backdown.setIsDeleted(0);
+        if (backdown.getSubmitUserId() == null) {
+            backdown.setSubmitUserId(loginUser.getUser().getId());
+        }
         backdownMapper.insert(backdown);
         return backdown;
     }

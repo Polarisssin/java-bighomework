@@ -113,6 +113,7 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from "vue";
 import { ElMessage, ElMessageBox } from "element-plus";
+import { UI_TEXT } from "@/constants/ui-text";
 import OrganStatusEditor from "@/components/customer/OrganStatusEditor.vue";
 import request from "@/utils/request";
 import { formatDate } from "@/utils/date";
@@ -245,6 +246,7 @@ async function removeLevel() {
 
 async function batchPurchase() {
   if (!customerId.value) return;
+  await ElMessageBox.confirm(UI_TEXT.confirmBatchPurchase, "批量购买", { type: "warning" });
   const res = await request.post(`/nurse/customer/${customerId.value}/level-items-batch`);
   ElMessage.success(res.message || "批量购买完成");
   loadItems();

@@ -1,0 +1,90 @@
+classDiagram
+  direction TB
+
+  class Role {
+    +int id
+    +String name
+  }
+
+  class SysUser {
+    +int id
+    +String username
+    +String nickname
+    +int roleId
+  }
+
+  class Room {
+    +int id
+    +String roomFloor
+    +int roomNo
+  }
+
+  class Bed {
+    +int id
+    +int roomNo
+    +String bedNo
+    +int bedStatus
+  }
+
+  class Customer {
+    +int id
+    +String customerName
+    +int residentStatus
+    +int bedId
+    +int userId
+    +int levelId
+  }
+
+  class BedDetails {
+    +int id
+    +Date startDate
+    +Date endDate
+    +int useStatus
+  }
+
+  class NurseContent {
+    +int id
+    +String nursingName
+    +int status
+  }
+
+  class NurseLevel {
+    +int id
+    +String levelName
+  }
+
+  class CustomerNurseItem {
+    +int customerId
+    +int itemId
+    +int nurseNumber
+  }
+
+  class NurseRecord {
+    +int customerId
+    +int itemId
+    +DateTime nursingTime
+  }
+
+  class Outward {
+    +int customerId
+    +int auditstatus
+  }
+
+  class Backdown {
+    +int customerId
+    +int retreattype
+  }
+
+  Role "1" --> "*" SysUser : role_id
+  Room "1" --> "*" Bed
+  Customer "0..1" --> "1" Bed
+  Customer "*" --> "0..1" SysUser : 管家
+  Customer "*" --> "0..1" NurseLevel
+  Customer "1" --> "*" BedDetails
+  Bed "1" --> "*" BedDetails
+  NurseLevel "*" --> "*" NurseContent
+  Customer "*" --> "*" NurseContent : 已购
+  Customer "1" --> "*" NurseRecord
+  SysUser "1" --> "*" NurseRecord
+  Customer "1" --> "*" Outward
+  Customer "1" --> "*" Backdown
