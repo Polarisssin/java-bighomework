@@ -1,0 +1,5 @@
+CREATE TABLE nurselevelitem (
+  id INT PRIMARY KEY AUTO_INCREMENT,
+  level_id INT NOT NULL,
+  item_id INT NOT NULL
+) ENGINE=InnoDB;

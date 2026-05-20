@@ -1,0 +1,3 @@
+-- 云开发 MySQL 完整初始化
+SET NAMES utf8mb4;
+SET FOREIGN_KEY_CHECKS = 0;

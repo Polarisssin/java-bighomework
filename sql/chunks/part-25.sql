@@ -1,0 +1,8 @@
+CREATE TABLE menu (
+  id INT PRIMARY KEY AUTO_INCREMENT,
+  menus_index VARCHAR(5) NULL,
+  title VARCHAR(50) NOT NULL,
+  icon VARCHAR(50) NOT NULL DEFAULT 'Menu',
+  path VARCHAR(100) NULL,
+  parent_id INT NULL
+) ENGINE=InnoDB;

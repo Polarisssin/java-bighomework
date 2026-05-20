@@ -1,0 +1,9 @@
+CREATE TABLE food (
+  id INT PRIMARY KEY AUTO_INCREMENT,
+  food_name VARCHAR(30) NULL,
+  food_type VARCHAR(30) NULL,
+  price DECIMAL(10,2) NULL,
+  is_halal INT NULL
+) ENGINE=InnoDB;
+
+SET FOREIGN_KEY_CHECKS = 1;

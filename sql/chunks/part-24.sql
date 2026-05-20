@@ -1,0 +1,21 @@
+CREATE TABLE customer (
+  id INT PRIMARY KEY AUTO_INCREMENT,
+  is_deleted INT NOT NULL DEFAULT 0,
+  customer_name VARCHAR(20) NOT NULL,
+  customer_age INT NOT NULL,
+  customer_sex INT NOT NULL,
+  idcard VARCHAR(20) NOT NULL,
+  room_no VARCHAR(20) NOT NULL,
+  building_no VARCHAR(11) NOT NULL DEFAULT '606',
+  checkin_date DATE NOT NULL,
+  expiration_date DATE NOT NULL,
+  contact_tel VARCHAR(20) NOT NULL,
+  bed_id INT NULL,
+  blood_type VARCHAR(20) NOT NULL,
+  filepath VARCHAR(50) NOT NULL DEFAULT '/avatar/default.png',
+  user_id INT NULL DEFAULT -1,
+  level_id INT NULL,
+  family_member VARCHAR(20) NULL,
+  birthday DATE NULL,
+  KEY idx_customer_name (customer_name)
+) ENGINE=InnoDB;

@@ -1,0 +1,1 @@
+INSERT INTO role (id, name) VALUES (1, '系统管理员'), (2, '健康管家');

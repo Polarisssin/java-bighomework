@@ -1,0 +1,1 @@
+UPDATE bed SET bed_status = 3 WHERE id = 1;

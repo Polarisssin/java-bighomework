@@ -1,0 +1,6 @@
+CREATE TABLE nurselevel (
+  id INT PRIMARY KEY AUTO_INCREMENT,
+  level_name VARCHAR(20) NOT NULL,
+  level_status INT NOT NULL DEFAULT 1,
+  is_deleted INT NOT NULL DEFAULT 0
+) ENGINE=InnoDB;

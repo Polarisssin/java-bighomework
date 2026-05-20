@@ -1,0 +1,15 @@
+CREATE TABLE `user` (
+  id INT PRIMARY KEY AUTO_INCREMENT,
+  create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  create_by INT NULL,
+  update_time DATETIME NULL,
+  update_by INT NULL,
+  is_deleted INT NOT NULL DEFAULT 0,
+  nickname VARCHAR(20) NOT NULL,
+  username VARCHAR(20) NOT NULL UNIQUE,
+  password VARCHAR(100) NOT NULL,
+  sex INT NOT NULL DEFAULT 1,
+  email VARCHAR(254) NULL,
+  phone_number VARCHAR(20) NOT NULL,
+  role_id INT NOT NULL
+) ENGINE=InnoDB;

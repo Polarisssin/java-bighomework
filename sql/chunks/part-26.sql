@@ -1,0 +1,5 @@
+CREATE TABLE rolemenu (
+  id INT PRIMARY KEY AUTO_INCREMENT,
+  role_id INT NOT NULL,
+  menu_id INT NOT NULL
+) ENGINE=InnoDB;
