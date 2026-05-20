@@ -1,0 +1,1 @@
+{"domain":"health-app-env-3g73ck72bcb11c66-1401396930.ap-shanghai.app.tcloudbase.com","routes":[{"path":"/elder-care","upstreamResourceType":"SCF","upstreamResourceName":"elderCareApi","enable":true,"enableAuth":false,"enablePathTransmission":true}]}
