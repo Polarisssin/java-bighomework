@@ -18,3 +18,8 @@ cloudbaserc.json
 
 # 临时脚本输出
 terminals
+
+# 课程 PDF（保留目录说明即可）
+基础编程实训/**/*.pdf
+基础编程实训/**/*.doc
+基础编程实训/**/*.docx
