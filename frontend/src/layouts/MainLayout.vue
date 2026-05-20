@@ -2,7 +2,7 @@
   <el-container class="layout">
     <el-aside width="232px" class="aside">
       <div class="logo">
-        <div class="logo-mark" aria-hidden="true">NEU</div>
+        <img class="logo-img" :src="brandLogoUrl" :alt="UI_TEXT.brandTitle" />
         <div>
           <div class="logo-title">{{ UI_TEXT.brandTitle }}</div>
           <div class="logo-sub">{{ UI_TEXT.brandSub }}</div>
@@ -59,7 +59,10 @@
 import { computed, type Component } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useUserStore, type MenuItem } from "@/stores/user";
+import { BRAND_LOGO_URL } from "@/constants/brand";
 import { UI_TEXT } from "@/constants/ui-text";
+
+const brandLogoUrl = BRAND_LOGO_URL;
 import {
   Avatar,
   Back,
@@ -169,19 +172,14 @@ function onLogout() {
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 }
 
-.logo-mark {
+.logo-img {
   flex-shrink: 0;
-  width: 36px;
-  height: 36px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  width: 40px;
+  height: 40px;
+  object-fit: contain;
   border-radius: 8px;
-  background: var(--app-primary);
-  color: #fff;
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.02em;
+  background: #fff;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.12);
 }
 
 .logo-title {
