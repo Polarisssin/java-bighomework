@@ -1,0 +1,9 @@
+{
+  "name": "elderCareApi",
+  "version": "1.0.0",
+  "main": "index.js",
+  "dependencies": {
+    "@cloudbase/node-sdk": "^2.5.0",
+    "mysql2": "^3.11.5"
+  }
+}
