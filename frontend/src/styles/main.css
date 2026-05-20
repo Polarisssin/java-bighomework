@@ -1,0 +1,93 @@
+* {
+  box-sizing: border-box;
+}
+
+:root {
+  --app-primary: #2563eb;
+  --app-primary-hover: #1d4ed8;
+  --app-bg: #f1f5f9;
+  --app-surface: #ffffff;
+  --app-text: #0f172a;
+  --app-text-secondary: #64748b;
+  --app-border: #e2e8f0;
+  --app-sidebar: #0f172a;
+  --app-sidebar-active: #2563eb;
+  --app-card-radius: 10px;
+  --app-card-border: var(--app-border);
+  --app-card-shadow: 0 1px 3px rgba(15, 23, 42, 0.06), 0 4px 16px rgba(15, 23, 42, 0.04);
+}
+
+html,
+body,
+#app {
+  margin: 0;
+  height: 100%;
+  font-family: "PingFang SC", "Microsoft YaHei", "Helvetica Neue", sans-serif;
+}
+
+body {
+  color: var(--app-text);
+  background: var(--app-bg);
+}
+
+/* Element Plus 主色与企业风对齐 */
+:root {
+  --el-color-primary: var(--app-primary);
+  --el-color-primary-light-3: #60a5fa;
+  --el-color-primary-light-5: #93c5fd;
+  --el-color-primary-light-7: #bfdbfe;
+  --el-color-primary-light-8: #dbeafe;
+  --el-color-primary-light-9: #eff6ff;
+  --el-color-primary-dark-2: var(--app-primary-hover);
+  --el-border-radius-base: 8px;
+  --el-border-radius-small: 6px;
+}
+
+.el-card {
+  border-radius: var(--app-card-radius) !important;
+  border-color: var(--app-card-border) !important;
+  box-shadow: var(--app-card-shadow) !important;
+}
+
+.el-card__header {
+  padding-top: 14px !important;
+  padding-bottom: 14px !important;
+  border-bottom-color: var(--app-border) !important;
+  font-weight: 600;
+  color: var(--app-text);
+}
+
+.el-table {
+  border-radius: var(--app-card-radius);
+  overflow: hidden;
+  --el-table-border-color: var(--app-border);
+}
+
+.el-table th.el-table__cell {
+  background: #f8fafc !important;
+  color: #475569;
+  font-weight: 600;
+  font-size: 13px;
+}
+
+.el-table tr:hover > td.el-table__cell {
+  background: #f8fafc !important;
+}
+
+.el-dialog {
+  border-radius: 12px !important;
+}
+
+.el-button {
+  border-radius: 8px;
+  font-weight: 500;
+}
+
+.el-pagination {
+  margin-top: 12px;
+}
+
+.el-form-item__label {
+  color: #475569;
+  font-weight: 500;
+}
