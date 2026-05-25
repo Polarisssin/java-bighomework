@@ -20,7 +20,7 @@ https://health-app-env-3g73ck72bcb11c66-1401396930.tcloudbaseapp.com/neusoft/v1/
 ### 种子老人（6 位）
 
 `sql/cloud-init-data.sql`：王建国、李秀英、张明华、陈淑芬、刘德福、赵玉兰。  
-若列表里出现 **「自测A/B/C」**，为接口自测时临时登记的数据，可执行 `scripts/cleanup-selftest-customers.ps1` 清理。
+若数据被自测弄乱，可执行 **`scripts/restore-demo-database.ps1`**（删自测客户并恢复 6 位种子老人与床位）；仅删自测名可用 `cleanup-selftest-customers.ps1`。
 
 ## 技术栈
 
