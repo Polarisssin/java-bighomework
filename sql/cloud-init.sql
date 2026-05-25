@@ -180,11 +180,11 @@ SET FOREIGN_KEY_CHECKS = 1;
 
 INSERT INTO role (id, name) VALUES (1, '系统管理员'), (2, '健康管家');
 INSERT INTO `user` (id, nickname, username, password, sex, phone_number, role_id, create_by) VALUES
-(1, '管理员', 'admin', 'admin', 1, '13800000001', 1, 1),
-(2, '管理员一', 'admin1', 'admin1', 1, '13800000002', 1, 1),
-(3, '管理员二', 'admin2', 'admin2', 0, '13800000003', 1, 1),
-(4, '张管家', 'nurse01', 'nurse01', 0, '13900000001', 2, 1),
-(5, '李管家', 'nurse02', 'nurse02', 1, '13900000002', 2, 1);
+(1, '管理员', 'admin', '$2b$10$.jSbWU.aIbVOfoD6Ej7C6uRxasAcr/K.GLWqa0G9Tpz4OQgiMCFf2', 1, '13800000001', 1, 1),
+(2, '管理员一', 'admin1', '$2b$10$KWSLejtbIVfVvrTN5HQVk.jsDGbzyRKfgcsKuJPguIpIYExtu3TIG', 1, '13800000002', 1, 1),
+(3, '管理员二', 'admin2', '$2b$10$Y6CCnjz8K9iNonz57S5Y3uMA1DmOOIhJyPVxHgsKzrQyXsKzfn5J2', 0, '13800000003', 1, 1),
+(4, '张管家', 'nurse01', '$2b$10$dFDonMJPsIIj.zByYKC/LeqO.rHV.AeHx4msrUwpcXIFHTLTV..Ju', 0, '13900000001', 2, 1),
+(5, '李管家', 'nurse02', '$2b$10$KE1pT9xneCj7E58M6HOqa.yRzJ/TQZRKtcTQF3j4xdAHJAh/2Baa6', 1, '13900000002', 2, 1);
 
 INSERT INTO room (id, room_floor, room_no) VALUES
 (1, '1', 101), (2, '1', 102), (3, '1', 103),

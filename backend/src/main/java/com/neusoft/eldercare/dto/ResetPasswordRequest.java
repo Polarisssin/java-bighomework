@@ -5,12 +5,8 @@ import jakarta.validation.constraints.Size;
 import lombok.Data;
 
 @Data
-public class LoginRequest {
-    @NotBlank(message = "请输入账号")
-    @Size(max = 20, message = "账号长度不能超过20位")
-    private String username;
-
-    @NotBlank(message = "请输入密码")
+public class ResetPasswordRequest {
+    @NotBlank(message = "请输入新密码")
     @Size(min = 4, max = 100, message = "密码长度为4-100位")
     private String password;
 }

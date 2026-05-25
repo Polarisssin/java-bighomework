@@ -3,12 +3,15 @@ package com.neusoft.eldercare.controller;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.neusoft.eldercare.common.Result;
+import com.neusoft.eldercare.dto.ResetPasswordRequest;
 import com.neusoft.eldercare.dto.UserVo;
 import com.neusoft.eldercare.entity.SysUser;
 import com.neusoft.eldercare.mapper.SysUserMapper;
 import com.neusoft.eldercare.security.ForbiddenException;
 import com.neusoft.eldercare.security.LoginUser;
+import com.neusoft.eldercare.security.PasswordPolicy;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -24,6 +27,7 @@ import java.util.Map;
 public class UserController {
 
     private final SysUserMapper userMapper;
+    private final PasswordPolicy passwordPolicy;
 
     @GetMapping
     public Result<Page<UserVo>> page(
@@ -46,10 +50,17 @@ public class UserController {
     @PreAuthorize("hasRole('ADMIN')")
     public Result<UserVo> create(@RequestBody SysUser user) {
         user.setIsDeleted(0);
+        if (!StringUtils.hasText(user.getUsername())) {
+            return Result.fail(400, "请输入账号");
+        }
         if (!StringUtils.hasText(user.getPassword()) && StringUtils.hasText(user.getPhoneNumber())) {
             String phone = user.getPhoneNumber();
             user.setPassword(phone.length() >= 6 ? phone.substring(phone.length() - 6) : phone);
         }
+        if (!StringUtils.hasText(user.getPassword())) {
+            return Result.fail(400, "请设置密码");
+        }
+        user.setPassword(passwordPolicy.encode(user.getPassword()));
         userMapper.insert(user);
         return Result.ok(UserVo.from(user));
     }
@@ -65,17 +76,14 @@ public class UserController {
 
     @PutMapping("/{id}/reset-password")
     @PreAuthorize("hasRole('ADMIN')")
-    public Result<Void> resetPassword(@PathVariable Integer id, @RequestBody SysUser body) {
+    public Result<Void> resetPassword(@PathVariable Integer id, @Valid @RequestBody ResetPasswordRequest body) {
         SysUser u = userMapper.selectById(id);
         if (u == null) {
             return Result.fail(404, "用户不存在");
         }
-        if (!StringUtils.hasText(body.getPassword()) || body.getPassword().length() < 4) {
-            return Result.fail(400, "密码至少4位");
-        }
         SysUser patch = new SysUser();
         patch.setId(id);
-        patch.setPassword(body.getPassword());
+        patch.setPassword(passwordPolicy.encode(body.getPassword()));
         userMapper.updateById(patch);
         return Result.ok(null);
     }

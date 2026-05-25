@@ -65,11 +65,17 @@ async function handle(method, path, body, qs, event) {
   const authUser = getUserFromEvent(event);
 
   if (method === "POST" && path === "/api/auth/login") {
-    const row = await db.queryOne(
-      "SELECT * FROM `user` WHERE username = ? AND password = ? AND is_deleted = 0",
-      [body.username, body.password]
-    );
+    const { validateLoginBody, verifyPassword } = require("./password");
+    const loginErr = validateLoginBody(body);
+    if (loginErr) throw Object.assign(new Error(loginErr), { statusCode: 400 });
+    const username = String(body.username).trim();
+    const row = await db.queryOne("SELECT * FROM `user` WHERE username = ? AND is_deleted = 0", [username]);
     if (!row) throw Object.assign(new Error("用户名或密码错误"), { statusCode: 400 });
+    const verified = verifyPassword(row.password, body.password);
+    if (!verified.ok) throw Object.assign(new Error("用户名或密码错误"), { statusCode: 400 });
+    if (verified.upgradeHash) {
+      await db.query("UPDATE `user` SET password = ? WHERE id = ?", [verified.upgradeHash, row.id]);
+    }
     const safe = rowToCamel(row);
     delete safe.password;
     const menus = safe.roleId === 1 ? ADMIN_MENUS : CAREGIVER_MENUS;

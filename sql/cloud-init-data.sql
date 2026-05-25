@@ -26,7 +26,13 @@ INSERT INTO menu (id, menus_index, title, icon, path, parent_id) VALUES
 (22, '7', '退住申请', 'Back', '/caregiver/backdown', 20);
 INSERT INTO rolemenu (role_id, menu_id) SELECT 1, id FROM menu WHERE id IN (23,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16);
 INSERT INTO rolemenu (role_id, menu_id) SELECT 2, id FROM menu WHERE id IN (23,17,27,18,19,20,21,22);
-INSERT INTO `user` (id, nickname, username, password, sex, phone_number, role_id, create_by) VALUES (1, '管理员', 'admin', 'admin', 1, '13800000001', 1, 1), (2, '管理员一', 'admin1', 'admin1', 1, '13800000002', 1, 1), (3, '管理员二', 'admin2', 'admin2', 0, '13800000003', 1, 1), (4, '张管家', 'nurse01', 'nurse01', 0, '13900000001', 2, 1), (5, '李管家', 'nurse02', 'nurse02', 1, '13900000002', 2, 1);
+-- 默认密码与账号相同（BCrypt）；生产库已存在明文时可执行 sql/migrate-password-bcrypt.sql
+INSERT INTO `user` (id, nickname, username, password, sex, phone_number, role_id, create_by) VALUES
+(1, '管理员', 'admin', '$2b$10$.jSbWU.aIbVOfoD6Ej7C6uRxasAcr/K.GLWqa0G9Tpz4OQgiMCFf2', 1, '13800000001', 1, 1),
+(2, '管理员一', 'admin1', '$2b$10$KWSLejtbIVfVvrTN5HQVk.jsDGbzyRKfgcsKuJPguIpIYExtu3TIG', 1, '13800000002', 1, 1),
+(3, '管理员二', 'admin2', '$2b$10$Y6CCnjz8K9iNonz57S5Y3uMA1DmOOIhJyPVxHgsKzrQyXsKzfn5J2', 0, '13800000003', 1, 1),
+(4, '张管家', 'nurse01', '$2b$10$dFDonMJPsIIj.zByYKC/LeqO.rHV.AeHx4msrUwpcXIFHTLTV..Ju', 0, '13900000001', 2, 1),
+(5, '李管家', 'nurse02', '$2b$10$KE1pT9xneCj7E58M6HOqa.yRzJ/TQZRKtcTQF3j4xdAHJAh/2Baa6', 1, '13900000002', 2, 1);
 INSERT INTO room (id, room_floor, room_no) VALUES (1, '1', 101), (2, '1', 102), (3, '1', 103), (4, '2', 201), (5, '2', 202), (6, '3', 301);
 INSERT INTO bed (id, room_no, bed_no, bed_status, room_id) VALUES (1, 101, 'A', 2, 1), (2, 101, 'B', 1, 1), (3, 102, 'A', 2, 2), (4, 102, 'B', 1, 2), (5, 103, 'A', 1, 3), (6, 201, 'A', 2, 4), (7, 201, 'B', 2, 4), (8, 202, 'A', 2, 5), (9, 301, 'A', 2, 6), (10, 301, 'B', 1, 6);
 INSERT INTO nursecontent (id, serial_number, nursing_name, service_price, message, status, execution_cycle, execution_times) VALUES (1, 'N001', '血压测量', '10', '每日血压监测', 1, '每日', '1'), (2, 'N002', '康复训练', '50', '肢体康复', 1, '每周', '3'), (3, 'N003', '助浴服务', '80', '洗浴协助', 1, '每周', '2'), (4, 'N004', '心理疏导', '30', '心理关怀', 1, '每周', '1'), (5, 'N005', '用药提醒', '15', '按时服药', 1, '每日', '2');

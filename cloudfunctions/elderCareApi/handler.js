@@ -206,6 +206,7 @@ const {
   validateBuyMaturityDates,
   validateNurseRecordExecution,
 } = require("./util");
+const { validateLoginBody, verifyPassword, hashPassword, validateRawPassword } = require("./password");
 
 const ORGAN_KEYS = ["head", "heart", "lungL", "lungR", "liver", "gut"];
 const ORGAN_STATUS_SET = new Set(["normal", "warning", "danger"]);
@@ -357,11 +358,16 @@ async function handle(method, path, body, qs, event) {
   const authUser = getUserFromEvent(event || {});
 
   if (method === "POST" && path === "/api/auth/login") {
-    const row = await db.queryOne(
-      "SELECT * FROM `user` WHERE username=? AND password=? AND is_deleted=0",
-      [body.username, body.password]
-    );
+    const loginErr = validateLoginBody(body);
+    if (loginErr) throw { status: 400, message: loginErr };
+    const username = String(body.username).trim();
+    const row = await db.queryOne("SELECT * FROM `user` WHERE username=? AND is_deleted=0", [username]);
     if (!row) throw { status: 400, message: "用户名或密码错误" };
+    const verified = verifyPassword(row.password, body.password);
+    if (!verified.ok) throw { status: 400, message: "用户名或密码错误" };
+    if (verified.upgradeHash) {
+      await db.query("UPDATE `user` SET password=? WHERE id=?", [verified.upgradeHash, row.id]);
+    }
     const user = M.mapUser(row);
     delete user.password;
     return {
@@ -1227,10 +1233,11 @@ async function handle(method, path, body, qs, event) {
     requireAdmin(authUser);
     const id = Number(path.split("/")[3]);
     const pwd = body.password || body.newPassword;
-    if (!pwd || String(pwd).length < 4) throw { status: 400, message: "密码至少4位" };
+    const pwdErr = validateRawPassword(pwd);
+    if (pwdErr) throw { status: 400, message: pwdErr };
     const row = await db.queryOne("SELECT id FROM `user` WHERE id=?", [id]);
     if (!row) throw { status: 404, message: "用户不存在" };
-    await db.query("UPDATE `user` SET password=? WHERE id=?", [String(pwd), id]);
+    await db.query("UPDATE `user` SET password=? WHERE id=?", [hashPassword(pwd), id]);
     return null;
   }
 
@@ -1300,9 +1307,12 @@ async function handle(method, path, body, qs, event) {
   if (method === "POST" && path === "/api/users") {
     requireAdmin(authUser);
     const phone = String(body.phoneNumber || "");
-    const pwd =
+    const rawPwd =
       body.password ||
       (phone.length >= 6 ? phone.slice(-6) : body.username || "123456");
+    const pwdErr = validateRawPassword(rawPwd);
+    if (pwdErr) throw { status: 400, message: pwdErr };
+    const pwd = hashPassword(rawPwd);
     const exists = await db.queryOne("SELECT id FROM `user` WHERE username=? AND is_deleted=0", [
       body.username,
     ]);
