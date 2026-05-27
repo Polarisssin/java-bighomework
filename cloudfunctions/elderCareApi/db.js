@@ -15,6 +15,8 @@ function getConfig() {
     connectionLimit: 5,
     charset: "utf8mb4",
     dateStrings: true,
+    supportBigNumbers: true,
+    bigNumberStrings: true,
     connectTimeout: 10000,
   };
 }

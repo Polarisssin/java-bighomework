@@ -64,8 +64,10 @@ async function loadStats() {
 async function load() {
   try {
     diagram.value = await request.get("/beds/diagram", { params: { floor: floor.value } });
-  } catch {
+  } catch (e: any) {
     diagram.value = [];
+    const msg = e?.message || e?.response?.data?.message;
+    if (msg) console.error("beds/diagram", msg);
   }
 }
 

@@ -569,13 +569,19 @@ async function handle(method, path, body, qs, event) {
   }
 
   if (method === "GET" && path === "/api/beds/diagram") {
-    const floor = String(qs.floor || "1");
+    const floor = String(Array.isArray(qs.floor) ? qs.floor[0] : qs.floor || "1");
     const rooms = await db.query("SELECT * FROM room WHERE room_floor=? ORDER BY room_no", [floor]);
     const data = [];
     for (const room of rooms) {
-      let beds = await db.query("SELECT * FROM bed WHERE room_id=? ORDER BY bed_no", [room.id]);
+      let beds = await db.query(
+        "SELECT * FROM bed WHERE room_id=? ORDER BY bed_no",
+        [Number(room.id)]
+      );
       if (!beds.length) {
-        beds = await db.query("SELECT * FROM bed WHERE room_no=? ORDER BY bed_no", [room.room_no]);
+        beds = await db.query(
+          "SELECT * FROM bed WHERE room_no=? ORDER BY bed_no",
+          [Number(room.room_no)]
+        );
       }
       data.push({ room: M.mapRoom(room), beds: (beds || []).map(M.mapBed) });
     }

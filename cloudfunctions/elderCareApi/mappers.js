@@ -121,15 +121,30 @@ function mapNurseRecord(r) {
   return row;
 }
 
+function toNum(v) {
+  if (v == null || v === "") return v;
+  const n = Number(v);
+  return Number.isFinite(n) ? n : v;
+}
+
 function mapRoom(r) {
   const row = rowToCamel(r);
-  if (row) row.roomFloor = String(row.roomFloor ?? r.room_floor);
+  if (row) {
+    row.id = toNum(row.id);
+    row.roomNo = toNum(row.roomNo ?? r.room_no);
+    row.roomFloor = String(row.roomFloor ?? r.room_floor ?? "");
+  }
   return row;
 }
 
 function mapBed(r) {
   const row = rowToCamel(r);
-  if (row && row.bedStatus != null) row.bedStatus = Number(row.bedStatus);
+  if (row) {
+    row.id = toNum(row.id);
+    row.roomId = toNum(row.roomId ?? r.room_id);
+    row.roomNo = toNum(row.roomNo ?? r.room_no);
+    if (row.bedStatus != null) row.bedStatus = Number(row.bedStatus);
+  }
   return row;
 }
 

@@ -10,12 +10,17 @@ const CORS = {
   "Access-Control-Max-Age": "86400",
 };
 
+function jsonReplacer(_key, value) {
+  if (typeof value === "bigint") return Number(value);
+  return value;
+}
+
 function json(statusCode, body) {
   return {
     isBase64Encoded: false,
     statusCode,
     headers: { ...CORS, "Content-Type": "application/json; charset=utf-8" },
-    body: JSON.stringify(body),
+    body: JSON.stringify(body, jsonReplacer),
   };
 }
 
